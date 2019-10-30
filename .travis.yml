@@ -36,12 +36,7 @@ before_install:
   # being killed.
   - |
     if test osx = "${TRAVIS_OS_NAME}"; then
-      macosx/brew-deps.sh install &&
-        if test -n "${TRAVIS_TAG}"; then
-          travis_wait 60 macosx/brew-deps.sh package_deps
-        else
-          macosx/brew-deps.sh deps
-        fi
+      macosx/brew-deps.sh install && macosx/brew-deps.sh deps
     fi
 
 # Use before_script to report the build configuration.
@@ -50,16 +45,6 @@ before_script:
   - id
   - env
   - git describe --long
-  - |
-    if test osx = "${TRAVIS_OS_NAME}" && test -n "${TRAVIS_TAG}"; then
-      rm -rf macosx/build-report "macosx/${TRAVIS_TAG}-osx-build-report.tbz" &&
-        mkdir macosx/build-report &&
-        cd macosx/build-report &&
-        ../brew-deps.sh describe &&
-        ../osx-xcode.sh describe &&
-        tar -cjf "../${TRAVIS_TAG}-osx-build-report.tbz" . &&
-        cd -
-    fi
 
 # 'make distcheck', and OS X package build on tag builds.
 script:
@@ -70,32 +55,27 @@ script:
   - ./autogen.sh
   - ./configure --enable-compile-warnings=error --enable-examples
   - make distcheck VERBOSE=1 V=1
-  # Build OS X package for tags.
-  - |
-    if test osx = "${TRAVIS_OS_NAME}" && test -n "${TRAVIS_TAG}"; then
-      cd macosx &&
-        env ZERO_AR_DATE=1 MACOSX_DEPLOYMENT_TARGET=10.12 ./build.sh &&
-        shasum -a 256 "${TRAVIS_TAG}.pkg" "${TRAVIS_TAG}-osx-build-report.tbz" &&
-        cd -
-    fi
+
 # Deploy the OS X package and its build report to a GitHub release.
 deploy:
   provider: releases
   api_key:
-    secure: noQsHb/ycLHcyS7VwgpPfsH1KNaKd1YyjGwAobxIPTbeyP6fPk8hHiTW3rvgOyXTh4bs0SuZ5iMBsTYPJ1sgDSsICLZvIoZeD7F9tdkvlJCKKKNq4y+vJVS6kHOajD9nLV+pcexIB74QazBDnXscKNsrulk5rcD3rj75P1QKYXs=
+    secure: "QCaIoFG1gTS/b0kJ4j996NY8nyt9UvnREhzc9op2ZYNZd0T9K1CNt8YqeSlUvDCls4e1tiQf7uipAdaEJHIX4jaecuon71dTUOGVyzLyvQmnu3Mz00+KNTNFeIRkAtk/5Zy0t0QzCWFdoZYlneK99V9AL7EUPBXlmDOWIggZilkCVP45f2OdsO226a1yPmtXuOjCR01jlpbe9MTkbIzZDX50LP/0xWwXnaA4QqKnKZSG17xqgHJujSzkC5cSW2tcRIDQj+7eX3G6mOSD2L4R7cdpIMj4nIFOjxnNpyvqj0pEhix+nQGErlbFDerjr4azOTFZHf9kj1BVUauLMQwWIafgYifIL+mm/YFAnaEmKi8pkCWisMEJ8AgrXs+6G4cbSfKT0Naz4PD40CheatCvgpxIaPkUd3MxmsTiZYJqTum44OSwP5aw7TWdMhPxQ5SmioZjZ7R+YuPa1sESiIVLv4gySc9Gj0Y2Zz6v9dfFHS1mAePL18EFclRjoWwAkycIIKTctv6fPGa7FiGMXpbQMqBFQEQimcq3ELIoO2D1zCgUIXWtMPXsK8HgNe5MDPDX1MtBxlYZQ2Imo8q87JzKB+LKGdEIketoPKMxnNpPXc1ol/TU+GRD/kddpDkdQ/ef0ISsPEeGWT0FEmk7Cr9l9gK9N+0crnSfB88O+4BtE3c="
   # Save build artifacts.
   skip_cleanup: true
   # Using a shell variable in deploy.file is undocumented but seems to work.
   file:
-    - macosx/${TRAVIS_TAG}.pkg
-    - macosx/${TRAVIS_TAG}-osx-build-report.tbz
+#    - macosx/${TRAVIS_TAG}.pkg
+#    - macosx/${TRAVIS_TAG}-osx-build-report.tbz
+    - scripts/mosh
+      src/frontend/mosh-client
+      src/frontend/mosh-server
   on:
     repo: mobile-shell/mosh
     tags: true
-    condition: ${TRAVIS_OS_NAME} = osx
 
-notifications:
-  irc:
-    channels:
-      - "chat.freenode.net#mosh"
-    skip_join: true
+# notifications:
+#   irc:
+#     channels:
+#       - "chat.freenode.net#mosh"
+#     skip_join: true
